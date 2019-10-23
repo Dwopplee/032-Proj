@@ -16,7 +16,7 @@ y = x[, 128]
 #   pct     the percentage (on [0.0, 1.0]) of the set to use for training
 #   data    the data.frame of predictor variables
 #   target  the numeric (vector) of target variables
-# Number of rows in data should match length of target and should be greater 
+# Number of rows in data should match length of target and should be greater
 # than one
 # Returns list with the following elements:
 #   trainData   the pct percentage of the data set for training models
