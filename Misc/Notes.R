@@ -16,3 +16,5 @@ covariance = function() {
 covariance()
 
 # If line of best fit has no slope, variable has no (linear) effect on the target
+
+# Note: coef can extract model coeffs. Can use this and which.min to remove least effective predictors
