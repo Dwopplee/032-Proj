@@ -12,6 +12,8 @@ police = X[, c(97:122)]
 # Create a vector for violent crime per population
 y = x[, 128]
 
+# Note: many functions serve primarily to allow me to avoid thinking
+
 # Randomly divides set into training and test sets
 #   pct     the percentage (on [0.0, 1.0]) of the set to use for training
 #   data    the data.frame of predictor variables
@@ -31,4 +33,23 @@ SplitSet = function(pct, data, target) {
   trainTarget = target[trainRows]
   testTarget = target[-trainRows]
   return(list("trainData" = trainData, "testData" = testData, "trainTarget" = trainTarget, "testTarget" = testTarget))
+}
+
+# Simple function for taking mean absolute error
+#   model   the model to test
+#   data    the data used to test model
+#   target  the target dataset used to test model
+AbsError = function(model, data, target) {
+  error = mean(abs(predict(model, newdata = data) - target))
+  return(error)
+}
+
+# Simple function for taking mean squared error
+# Favors tests in which large errors are particularly bad
+#   model   the model to test
+#   data    the data used to test model
+#   target  the target dataset used to test model
+SqdError = function(model, data, target) {
+  error = mean((predict(model, newdata = data) - target)^2)
+  return(error)
 }
