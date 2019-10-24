@@ -53,3 +53,11 @@ SqdError = function(model, data, target) {
   error = mean((predict(model, newdata = data) - target)^2)
   return(error)
 }
+
+# Solid like 30% sure this function works for maxPow, but not minPow
+ModelExp = function(predictor, trainData, trainTarget, maxPow = 1, minPow = 1) {
+  pows = paste("I(", predictor, "**", c(minPow:maxPow), ")", sep='')
+  f = as.formula(paste("trainTarget ~ ", paste(pows, collapse = "+")))
+  model = lm(f, data = trainData)
+  return(model)
+}

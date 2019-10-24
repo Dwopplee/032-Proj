@@ -31,15 +31,12 @@ posExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   oldError = Inf
   newError = baseError
   maxPow = 0
-  # `> 0.01` is there as a threshold to reduce variablity
   # Also means that we favor simpler models over models with slightly less error
-  # May be interesting to test this with MSE rather than MAE; would have to change threshold
-  while ((newError < oldError) && (abs(oldError - newError) > 0.01)) {
+  # May be interesting to test this with MSE rather than MAE
+  while ((newError < oldError)) {
     maxPow = maxPow + 1
     
-    pows = paste("I(", predictor, "**", c(1:maxPow), ")", sep='')
-    f = as.formula(paste("trainTarget ~ ", paste(pows, collapse = "+")))
-    model = lm(f, data = trainData)
+    model = ModelExp(predictor, trainData, trainTarget, maxPow = maxPow)
     
     oldError = newError
     newError = AbsError(model, testData, testTarget)
@@ -48,7 +45,7 @@ posExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   return(maxPow - 1)
 }
 
-# TODO: document
+# TODO: probably copy/edit documentation for posExps?
 # TODO: Fix case where we divide by zero (I think that's the problem):
 # ```Error in lm.fit(x, y, offset = offset, singular.ok = singular.ok, ...) : 
 #       NA/NaN/Inf in 'x'```
@@ -74,5 +71,3 @@ negExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   
   return(minPow + 1)
 }
-
-return(negExps("population", XTrain, XTest, yTrain, yTest))
