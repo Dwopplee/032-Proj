@@ -2,7 +2,7 @@ rm(list=ls(all=TRUE))
 
 test = function(i) {
   source('Analyze.R')
-  return(posExps("FemalePctDiv", XTrain, XTest, yTrain, yTest))
+  return(PosExps("medIncome", splitX$trainData, splitX$testData, splitX$trainTarget, splitX$testTarget))
 }
 
 results = sapply(c(1:1000), test)

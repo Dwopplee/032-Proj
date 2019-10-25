@@ -54,8 +54,20 @@ SqdError = function(model, data, target) {
   return(error)
 }
 
-# Solid like 30% sure this function works for maxPow, but not minPow
-ModelExp = function(predictor, trainData, trainTarget, maxPow = 1, minPow = 1) {
+# TODO: Solid like 30% sure this function works for maxPow and minPow
+# TODO: May be useful to generalize for multiple parameters
+# Creates a model with positive, negative, or both types of exponenets
+#   predictor   the column name of the column in trainData to use
+#   trainData   the data set from which to draw training data
+#   trainTarget the target variable vector from which to draw training data
+#   maxPow      the maximum power that should be included in the model
+#   minPow      the minimum power that should be included in the model
+ModelExp = function(predictor, trainData, trainTarget, maxPow = -1, minPow = 1) {
+  # To avoid dividing by zero
+  if (minPow < 0) {
+    trainData[trainData == 0] = NA
+  }
+  
   pows = paste("I(", predictor, "**", c(minPow:maxPow), ")", sep='')
   f = as.formula(paste("trainTarget ~ ", paste(pows, collapse = "+")))
   model = lm(f, data = trainData)
