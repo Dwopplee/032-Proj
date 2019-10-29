@@ -74,6 +74,11 @@ ModelExp = function(predictor, trainData, trainTarget, maxPow = -1, minPow = 1) 
   return(model)
 }
 
+ExpFormula = function(predictor, maxPow) {
+  pows = paste("I(", predictor, "**", c(1:maxPow), ")", sep='')
+  return(paste(pows, collapse = "+"))
+}
+
 # TODO: document
 # Stole this lol
 Mode = function(dataSet) {
@@ -120,7 +125,6 @@ PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   return(maxPow - 1)
 }
 
-
 # This function is a pain to use; we can just rely on taylor expansions
 # and use only positive exponents
 # Decreases minimum exponent from 0 until error increases
@@ -155,4 +159,3 @@ NegExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   
   return(minPow + 1)
 }
-
