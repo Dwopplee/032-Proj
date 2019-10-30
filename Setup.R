@@ -54,8 +54,6 @@ SqdError = function(model, data, target) {
   return(error)
 }
 
-# TODO: Solid like 30% sure this function works for maxPow and minPow
-# TODO: May be useful to generalize for multiple parameters
 # Creates a model with positive, negative, or both types of exponenets
 #   predictor   the column name of the column in trainData to use
 #   trainData   the data set from which to draw training data
@@ -74,13 +72,17 @@ ModelExp = function(predictor, trainData, trainTarget, maxPow = -1, minPow = 1) 
   return(model)
 }
 
+# Adds together all the powers from 1 to maxPow
+#   predictor the predictor to add powers of (a string)
+#   maxPow    the highest exponent to include
+# Returns the expression as a string
 ExpFormula = function(predictor, maxPow) {
   pows = paste("I(", predictor, "**", c(1:maxPow), ")", sep='')
   return(paste(pows, collapse = "+"))
 }
 
-# TODO: document
-# Stole this lol
+# Returns the most common element in a vector
+#   dataSet   a numeric (vector)
 Mode = function(dataSet) {
   uniqData <- unique(dataSet)
   return(uniqData[which.max(tabulate(match(dataSet, uniqData)))])
@@ -93,11 +95,6 @@ Mode = function(dataSet) {
 #   trainTarget data of target variable used for modeling
 #   testTarget  data of target variable used for testing
 # Returns the highest exponent reached before error increased
-# TODO: This function outputs slightly different things based on what the 
-#       training and test sets are
-#           May want to run this multiple times, if possible.
-#           We probably want to favor simpler models, which this innately does
-#             Maybe use mode?
 PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   naIndex = which(is.na(testData[predictor]))
   if (length(naIndex) > 0) {
@@ -123,39 +120,4 @@ PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   }
   
   return(maxPow - 1)
-}
-
-# This function is a pain to use; we can just rely on taylor expansions
-# and use only positive exponents
-# Decreases minimum exponent from 0 until error increases
-#   predictor   a string containing the name of column to model
-#   trainData   data used for modeling; must contain predictor
-#   testData    data used for testing; must contain predictor
-#   trainTarget data of target variable used for modeling
-#   testTarget  data of target variable used for testing
-# Returns the lowest exponent reached before error increased
-# TODO: This function outputs slightly different things based on what the 
-#       training and test sets are
-#           May want to run this multiple times, if possible.
-#           We probably want to favor simpler models, which this innately does
-#             Maybe use mode?
-NegExps = function(predictor, trainData, testData, trainTarget, testTarget) {
-  # Absolute worst a model should be
-  baseModel = lm(trainTarget ~ 1, data = trainData)
-  baseError = AbsError(baseModel, testData, testTarget)
-  
-  oldError = Inf
-  newError = baseError
-  minPow = 0
-  # May be interesting to test this with MSE rather than MAE
-  while (newError < oldError) {
-    minPow = minPow - 1
-    
-    model = ModelExp(predictor, trainData, trainTarget, minPow = minPow)
-    
-    oldError = newError
-    newError = AbsError(model, testData, testTarget)
-  }
-  
-  return(minPow + 1)
 }
