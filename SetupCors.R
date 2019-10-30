@@ -1,12 +1,14 @@
-# That model sucks.
+
+# That model sucks (suffers from extreme saturation and likely overfitting).
 # Try finding models with smallest errors:
 
 # TODO: consider moving this to Setup.R
 TestExps = function(pct, data, target, exps) {
   split = SplitSet(pct, data, target)
-  # TODO: mapply converts trainData and trainTarget to vectors. not sure how to fix this
-  models = mapply(ModelExp, colnames(data), rep(split$trainData, times = length(exps)),
-                  rep(split$trainTarget, times = length(exps)), exps)
-  errors = sapply(models, AbsError, split$testData, split$testTarget)
+  models = mapply(ModelExp, predictor = colnames(data), maxPow = exps, MoreArgs = list(trainData = split$trainData,
+                                                                                       trainTarget = split$trainTarget))
+  errors = mapply(NAAbsError, models, colnames(data), MoreArgs = list(split$testData, split$testTarget))
   return(errors)
 }
+
+TestExps(0.8, Xmodel, y, modes)
