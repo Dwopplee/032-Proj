@@ -36,10 +36,18 @@ SplitSet = function(pct, data, target) {
 }
 
 # Simple function for taking mean absolute error
-#   model   the model to test
-#   data    the data used to test model
-#   target  the target dataset used to test model
-AbsError = function(model, data, target) {
+#   model     the model to test
+#   data      the data used to test model
+#   target    the target dataset used to test model
+#   predictor the up to one predictor the model is based on
+AbsError = function(model, data, target, predictor = NULL) {
+  if (!is.null(predictor)) {
+    naIndex = which(is.na(data[predictor]))
+    if (length(naIndex) > 0) {
+      data = data[-c(naIndex), ]
+      target = target[-c(naIndex)]
+    }
+  }
   error = mean(abs(predict(model, newdata = data) - target))
   return(error)
 }
@@ -49,7 +57,15 @@ AbsError = function(model, data, target) {
 #   model   the model to test
 #   data    the data used to test model
 #   target  the target dataset used to test model
-SqdError = function(model, data, target) {
+#   predictor the up to one predictor the model is based on
+SqdError = function(model, data, target, predictor = NULL) {
+  if (!is.null(predictor)) {
+    naIndex = which(is.na(data[predictor]))
+    if (length(naIndex) > 0) {
+      data = data[-c(naIndex), ]
+      target = target[-c(naIndex)]
+    }
+  }
   error = mean((predict(model, newdata = data) - target)^2)
   return(error)
 }
@@ -96,12 +112,6 @@ Mode = function(dataSet) {
 #   testTarget  data of target variable used for testing
 # Returns the highest exponent reached before error increased
 PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
-  naIndex = which(is.na(testData[predictor]))
-  if (length(naIndex) > 0) {
-    testData = testData[-c(naIndex), ]
-    testTarget = testTarget[-c(naIndex)]
-  }
-  
   # Absolute worst a model should be
   baseModel = lm(trainTarget ~ 1, data = trainData)
   baseError = AbsError(baseModel, testData, testTarget)
@@ -116,7 +126,7 @@ PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
     model = ModelExp(predictor, trainData, trainTarget, maxPow = maxPow)
     
     oldError = newError
-    newError = AbsError(model, testData, testTarget)
+    newError = AbsError(model, testData, testTarget, predictor)
   }
   
   return(maxPow - 1)
