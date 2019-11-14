@@ -1,12 +1,10 @@
 load("crime.RData")
 
-# TODO: Redocument literally everything (RStudio does this (!))
-
 # I have a problem
 par(bg = 'grey50')
 
 # Remove the non predictor columns
-X = x[,-c(c(1:5), 128)]
+X = x[, -c(c(1:5), 128)]
 
 # Choose from the predictor variables those which are socio-economic
 socioEcon = X[, c(1:96)]
@@ -33,8 +31,8 @@ y = x[, 128]
 SplitSet = function(pct, data, target) {
   numRows = ceiling(pct * nrow(data))
   trainRows = sample(c(1:nrow(data)), numRows)
-  trainData = data[trainRows,]
-  testData = data[-trainRows,]
+  trainData = data[trainRows, ]
+  testData = data[-trainRows, ]
   trainTarget = target[trainRows]
   testTarget = target[-trainRows]
   return(
@@ -56,11 +54,11 @@ AbsError = function(model, data, target, predictor = NULL) {
   if (!is.null(predictor)) {
     naIndex = which(is.na(data[predictor]))
     if (length(naIndex) > 0) {
-      data = data[-c(naIndex),]
+      data = data[-c(naIndex), ]
       target = target[-c(naIndex)]
     }
   }
-  error = mean(abs(predict(model, newdata = data) - target))
+  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target)))
   return(error)
 }
 
@@ -74,7 +72,7 @@ SqdError = function(model, data, target, predictor = NULL) {
   if (!is.null(predictor)) {
     naIndex = which(is.na(data[predictor]))
     if (length(naIndex) > 0) {
-      data = data[-c(naIndex), ]
+      data = data[-c(naIndex),]
       target = target[-c(naIndex)]
     }
   }
@@ -150,4 +148,36 @@ PosExps = function(predictor,
   }
   
   return(maxPow - 1)
+}
+
+# Creates a model with specifications according to parameters
+#   predictors  predictors the model is based on
+#   trainData   data of predictors to train model with
+#   trainTarget data of target variable to train model with
+#   exponenets  degree of polynomial models corresponding to predictors
+CreateModel = function(predictors,
+                       trainData,
+                       trainTarget,
+                       exponents) {
+  powForm = paste(mapply(ExpFormula, predictors, exponents), collapse = "+")
+  f = as.formula(paste("trainTarget ~ ", powForm))
+  model = lm(f, data = trainData)
+  return(model)
+}
+
+# Provides information on a model
+#   model       the model to test
+#   testData    data of predictors to test model with
+#   testTarget  data of target variable to test model with
+#   plot        whether or no to plot the model's predictions
+TestModel = function(model, testData, testTarget, plot = FALSE) {
+  if (plot) {
+    plot(predict(model, newdata = testData), testTarget)
+    abline(0, 1)
+  }
+  
+  cat(deparse(substitute(model)),
+      "error:",
+      AbsError(model, testData, testTarget),
+      '\n')
 }

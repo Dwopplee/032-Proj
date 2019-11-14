@@ -1,8 +1,10 @@
 source('SetupCors.R')
 
-# TODO: Add documentation following format of Powers.R
-
-# At this point we've entered our exploratory phase: the initial plan is complete.
+# At this point we've completed the planned-out part of making models.
+# We've got a bunch of polynomial models with varying degree "optimized" to
+# have minimal error. However, the model suffers from saturation and is far from
+# actually optimal. Here, we'll try to explore the linear relationships between
+# our predictors in order to reduce this saturation.
 
 # With our "optimized" polynomial models, which predictors are most accurate?
 errs = replicate(1000, TestExps(0.8, Xmodel, y, modes))
@@ -11,38 +13,103 @@ means = sapply(errs[, length(modes)], mean)
 # This is actually super inconsistent, even with 1000 samples
 bestIndex = sort(means, index.return = TRUE)$ix
 
-# Let's try making a model (manually) with accurate variables with low covariance:
+# We could technically call this our answer to our research question but the
+# model sucks and we haven't done that much.
+
+# Let's try making a model (manually) with accurate variables with low
+# covariance:
 top10cor = cor(Xmodel[, bestIndex[c(1:10)]])
 
 # Model generated manually based on one sample:
 #   Take predictor with lowest error and the one with least correlation with it
-test0 = paste(mapply(ExpFormula, c("PctKids2Par", "NumIlleg"), c(3, 9)),
-              collapse = "+")
-test0Form = as.formula(paste("splitX$trainTarget ~ ", test0))
-test0Model = lm(test0Form, data = splitX$trainData)
+powForm0 = paste(mapply(ExpFormula, c("PctKids2Par", "NumIlleg"), c(3, 9)),
+                 collapse = "+")
+f0 = as.formula(paste("splitX$trainTarget ~ ", powForm0))
+test0 = lm(f0, data = splitX$trainData)
 
-plot(predict(test0Model, newdata = splitX$testData),
-     splitX$testTarget)
-abline(0, 1)
+TestModel(test0, splitX$testData, splitX$testTarget, TRUE)
 
-cat("Test 0 error:",
-    AbsError(test0Model, splitX$testData, splitX$testTarget))
-
-# This model seemed worse, but only slightly, and is much simpler.
-# Noteable issues:
+# This model is often better, and removes the occasional extremely high error
+# Notable issues:
 #   We never/very rarely predict high errors
 #   Error increases significantly as crime (predicted and actual) increases
+# Maybe we're simplifying things too much?
 
-# A few options: 
-#   Try to balance the data set between high and low crime rates
-#     This should help us predict higher crime rates more often
-#     Applies most directly to test0-type models
-#   Try to decrease saturation by exploration of correlations
-#     This primarily applies to our first model
-#     Can be explored by hand or potentially automated
-#     May find some nonlinear relationship that reduced spread in both models
-#   Try to fill NAs based on other predictors
-#     Probably would provide a better foundation for current/future work
-#     Professor said it would be important (and I'm still tempted to ignore it)
-#   Try to fill NAs based on same column
-#     Should be pretty easy, doesn't really fit here though
+# Try to reduce saturation by removing highly correlated predictors:
+
+# Returns indices of predictor and columns with correlations lower then 0.8
+#   predictor the predictor to check correlations against
+#   data      the data set of predictors to select from
+#   oldData   the data set of all predictors, if different from data
+LowCors = function(predictor, data, oldData = NULL) {
+  cors = sapply(data, cor, data[predictor])
+  
+  predIndex = which(colnames(data) == predictor)
+  if (!is.null(oldData)) {
+    predIndex = which(colnames(oldData) == predictor)
+  }
+  
+  # 0.8 is a rather arbitrary threshold, decided by what multiple of 0.05 made
+  # test2 (defined later) most accurate during a few trial runs
+  newPredictors = c(which(cors < 0.8), predIndex)
+  return(newPredictors)
+}
+
+# Remove the predictors with high correlations with the most accurate predictor
+cors = LowCors(colnames(Xmodel)[bestIndex[1]], Xmodel)
+
+corData = Xmodel[, cors]
+corModes = modes[cors]
+
+# Generate and plot a model with all other predictors raised to generated powers
+test1 = CreateModel(colnames(corData),
+                    splitX$trainData,
+                    splitX$trainTarget,
+                    corModes)
+
+TestModel(test1, splitX$testData, splitX$testTarget, TRUE)
+
+# This is also sometimes an improvement over the first model.
+# It still seems to eliminate the occasional extremely high error.
+
+# Try looping this stuff?
+
+# Remove all predictors with high correlation to a "better" one
+# This entire function is super sketchy
+#   data  the data set of predictors
+# This function also requires bestIndex and modes as defined previously
+# in this file, but we don't pass them into the function because I'm lazy
+# This function pretty much only exists to compartmentalize things a bit more
+LoopCors = function(data) {
+  newIndex = bestIndex
+  newModes = modes
+  newData = data
+  i = 1
+  
+  while (i <= length(newIndex)) {
+    nextIndex = newIndex[i]
+    cors = LowCors(colnames(data)[nextIndex], newData, data)
+    
+    newData = data[, cors]
+    newModes = newModes[cors]
+    newIndex = newIndex[newIndex %in% cors]
+    
+    # We're adding a vector and an integer
+    # This is disgusting
+    i = which(newIndex == nextIndex) + 1
+  }
+  return(newIndex)
+}
+
+cor2Names = LoopCors(Xmodel)
+
+# Generate a model with lower correlation between variables
+test2 = CreateModel(colnames(Xmodel)[cor2Names],
+                    splitX$trainData,
+                    splitX$trainTarget,
+                    modes[cor2Names])
+
+TestModel(test2, splitX$testData, splitX$testTarget, TRUE)
+
+# This model seems to generally be the best so far, but is only a marginal
+# improvement over test0

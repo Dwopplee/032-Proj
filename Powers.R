@@ -37,23 +37,20 @@ exps = replicate(100, SampleExps(0.8, X, y))
 modes = sapply(exps[, ncol(exps)], Mode)
 
 # We don't want predictors that are best as constants
-Xmodel = X[, -which(modes == 0)]
+Xmodel = X[,-which(modes == 0)]
 modes = modes[-which(modes == 0)]
 
 # Generate and plot a model with all predictors raised to generated powers
 
 splitX = SplitSet(0.8, Xmodel, y)
 
-powForm = paste(mapply(ExpFormula, colnames(Xmodel), modes), collapse = "+")
-f = as.formula(paste("splitX$trainTarget ~ ", powForm))
-model = lm(f, data = splitX$trainData)
+model0 = CreateModel(colnames(Xmodel), splitX$trainData, splitX$trainTarget, modes)
 
-plot(predict(model, newdata = splitX$testData), splitX$testTarget)
-abline(0, 1)
-
-cat("Model 0 error:", AbsError(model, splitX$testData, splitX$testTarget))
+TestModel(model0, splitX$testData, splitX$testTarget, plot = TRUE)
 
 # This model doesn't quite suck (!), but we can (hopefully) do better.
+# Edit: mean absolute percent error seems to be about 84%, which kinda sucks
+#   Don't ask me to make a funciton that finds this
 # It also has limited impact on our research question -- the impact of variables
 # with high dependence on other variables may be diminished
 # Notable issues:
