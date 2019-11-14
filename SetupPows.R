@@ -1,5 +1,8 @@
 load("crime.RData")
 
+# I have a problem
+par(bg = 'grey50')
+
 # Remove the non predictor columns
 X = x[, -c(c(1:5), 128)]
 
@@ -32,7 +35,14 @@ SplitSet = function(pct, data, target) {
   testData = data[-trainRows, ]
   trainTarget = target[trainRows]
   testTarget = target[-trainRows]
-  return(list("trainData" = trainData, "testData" = testData, "trainTarget" = trainTarget, "testTarget" = testTarget))
+  return(
+    list(
+      "trainData" = trainData,
+      "testData" = testData,
+      "trainTarget" = trainTarget,
+      "testTarget" = testTarget
+    )
+  )
 }
 
 # Simple function for taking mean absolute error
@@ -48,25 +58,25 @@ AbsError = function(model, data, target, predictor = NULL) {
       target = target[-c(naIndex)]
     }
   }
-  error = mean(abs(predict(model, newdata = data) - target))
+  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target)))
   return(error)
 }
 
 # Simple function for taking mean squared error
 # Favors tests in which large errors are particularly bad
-#   model   the model to test
-#   data    the data used to test model
-#   target  the target dataset used to test model
+#   model     the model to test
+#   data      the data used to test model
+#   target    the target dataset used to test model
 #   predictor the up to one predictor the model is based on
 SqdError = function(model, data, target, predictor = NULL) {
   if (!is.null(predictor)) {
     naIndex = which(is.na(data[predictor]))
     if (length(naIndex) > 0) {
-      data = data[-c(naIndex), ]
+      data = data[-c(naIndex),]
       target = target[-c(naIndex)]
     }
   }
-  error = mean((predict(model, newdata = data) - target)^2)
+  error = mean((predict(model, newdata = data) - target) ^ 2)
   return(error)
 }
 
@@ -76,13 +86,17 @@ SqdError = function(model, data, target, predictor = NULL) {
 #   trainTarget the target variable vector from which to draw training data
 #   maxPow      the maximum power that should be included in the model
 #   minPow      the minimum power that should be included in the model
-ModelExp = function(predictor, trainData, trainTarget, maxPow = -1, minPow = 1) {
+ModelExp = function(predictor,
+                    trainData,
+                    trainTarget,
+                    maxPow = -1,
+                    minPow = 1) {
   # To avoid dividing by zero
   if (minPow < 0) {
     trainData[trainData == 0] = NA
   }
   
-  pows = paste("I(", predictor, "**", c(minPow:maxPow), ")", sep='')
+  pows = paste("I(", predictor, "**", c(minPow:maxPow), ")", sep = '')
   f = as.formula(paste("trainTarget ~ ", paste(pows, collapse = "+")))
   model = lm(f, data = trainData)
   return(model)
@@ -93,7 +107,7 @@ ModelExp = function(predictor, trainData, trainTarget, maxPow = -1, minPow = 1) 
 #   maxPow    the highest exponent to include
 # Returns the expression as a string
 ExpFormula = function(predictor, maxPow) {
-  pows = paste("I(", predictor, "**", c(1:maxPow), ")", sep='')
+  pows = paste("I(", predictor, "**", c(1:maxPow), ")", sep = '')
   return(paste(pows, collapse = "+"))
 }
 
@@ -111,7 +125,11 @@ Mode = function(dataSet) {
 #   trainTarget data of target variable used for modeling
 #   testTarget  data of target variable used for testing
 # Returns the highest exponent reached before error increased
-PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
+PosExps = function(predictor,
+                   trainData,
+                   testData,
+                   trainTarget,
+                   testTarget) {
   # Absolute worst a model should be
   baseModel = lm(trainTarget ~ 1, data = trainData)
   baseError = AbsError(baseModel, testData, testTarget)
@@ -130,4 +148,36 @@ PosExps = function(predictor, trainData, testData, trainTarget, testTarget) {
   }
   
   return(maxPow - 1)
+}
+
+# Creates a model with specifications according to parameters
+#   predictors  predictors the model is based on
+#   trainData   data of predictors to train model with
+#   trainTarget data of target variable to train model with
+#   exponenets  degree of polynomial models corresponding to predictors
+CreateModel = function(predictors,
+                       trainData,
+                       trainTarget,
+                       exponents) {
+  powForm = paste(mapply(ExpFormula, predictors, exponents), collapse = "+")
+  f = as.formula(paste("trainTarget ~ ", powForm))
+  model = lm(f, data = trainData)
+  return(model)
+}
+
+# Provides information on a model
+#   model       the model to test
+#   testData    data of predictors to test model with
+#   testTarget  data of target variable to test model with
+#   plot        whether or no to plot the model's predictions
+TestModel = function(model, testData, testTarget, plot = FALSE) {
+  if (plot) {
+    plot(predict(model, newdata = testData), testTarget)
+    abline(0, 1)
+  }
+  
+  cat(deparse(substitute(model)),
+      "error:",
+      AbsError(model, testData, testTarget),
+      '\n')
 }
