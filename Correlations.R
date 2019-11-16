@@ -1,3 +1,5 @@
+# This code takes about 6 minutes to run (on my machine) if you source it from here.
+
 source('SetupCors.R')
 
 # At this point we've completed the planned-out part of making models.

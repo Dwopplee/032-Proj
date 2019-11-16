@@ -1,5 +1,7 @@
 rm(list = ls(all = TRUE))
 
+# Sourcing this file takes my machine about 2 minutes to run.
+
 # This is the first iteration of the model.
 
 # We find the "optimal" polynomial relationship for each predictor with our
