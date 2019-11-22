@@ -9,11 +9,9 @@ source('SetupCors.R')
 # our predictors in order to reduce this saturation.
 
 # With our "optimized" polynomial models, which predictors are most accurate?
-errs = replicate(1000, TestExps(0.8, Xmodel, y, modes))
-means = sapply(errs[, length(modes)], mean)
+errs = TestExps(10, Xmodel, y, exps)
 
-# This is actually super inconsistent, even with 1000 samples
-bestIndex = sort(means, index.return = TRUE)$ix
+bestIndex = sort(errs, index.return = TRUE)$ix
 
 # We could technically call this our answer to our research question but the
 # model sucks and we haven't done that much.
@@ -26,16 +24,9 @@ top10cor = cor(Xmodel[, bestIndex[c(1:10)]])
 #   Take predictor with lowest error and the one with least correlation with it
 powForm0 = paste(mapply(ExpFormula, c("PctKids2Par", "NumIlleg"), c(3, 9)),
                  collapse = "+")
-f0 = as.formula(paste("splitX$trainTarget ~ ", powForm0))
-test0 = lm(f0, data = splitX$trainData)
-
-TestModel(test0, splitX$testData, splitX$testTarget, TRUE)
-
-# This model is often better, and removes the occasional extremely high error
-# Notable issues:
-#   We never/very rarely predict high errors
-#   Error increases significantly as crime (predicted and actual) increases
-# Maybe we're simplifying things too much?
+cat("Test 0 error and Variance:", CrossValidate(powForm0, X, y, folds, TRUE), '\n')
+# This model reduces error but variance almost triples, which is interesting.
+# I suppose less variables means more variance because they can't mitigate each others' variances
 
 # Try to reduce saturation by removing highly correlated predictors:
 
@@ -61,18 +52,11 @@ LowCors = function(predictor, data, oldData = NULL) {
 cors = LowCors(colnames(Xmodel)[bestIndex[1]], Xmodel)
 
 corData = Xmodel[, cors]
-corModes = modes[cors]
+corExps = exps[cors]
 
 # Generate and plot a model with all other predictors raised to generated powers
-test1 = CreateModel(colnames(corData),
-                    splitX$trainData,
-                    splitX$trainTarget,
-                    corModes)
-
-TestModel(test1, splitX$testData, splitX$testTarget, TRUE)
-
-# This is also sometimes an improvement over the first model.
-# It still seems to eliminate the occasional extremely high error.
+powForm1 = paste(mapply(ExpFormula, colnames(corData), corExps), collapse = "+")
+cat("Test 1 error and Variance:", CrossValidate(powForm1, Xmodel, y, folds, TRUE), '\n')
 
 # Try looping this stuff?
 
@@ -84,7 +68,7 @@ TestModel(test1, splitX$testData, splitX$testTarget, TRUE)
 # This function pretty much only exists to compartmentalize things a bit more
 LoopCors = function(data) {
   newIndex = bestIndex
-  newModes = modes
+  newExps = exps
   newData = data
   i = 1
   
@@ -93,7 +77,7 @@ LoopCors = function(data) {
     cors = LowCors(colnames(data)[nextIndex], newData, data)
     
     newData = data[, cors]
-    newModes = newModes[cors]
+    newExps = newExps[cors]
     newIndex = newIndex[newIndex %in% cors]
     
     # We're adding a vector and an integer
@@ -105,13 +89,5 @@ LoopCors = function(data) {
 
 cor2Names = LoopCors(Xmodel)
 
-# Generate a model with lower correlation between variables
-test2 = CreateModel(colnames(Xmodel)[cor2Names],
-                    splitX$trainData,
-                    splitX$trainTarget,
-                    modes[cor2Names])
-
-TestModel(test2, splitX$testData, splitX$testTarget, TRUE)
-
-# This model seems to generally be the best so far, but is only a marginal
-# improvement over test0
+powForm2 = paste(mapply(ExpFormula, colnames(Xmodel)[cor2Names], exps[cor2Names]), collapse = "+")
+cat("Test 2 error and Variance:", CrossValidate(powForm2, Xmodel, y, folds, TRUE), '\n')

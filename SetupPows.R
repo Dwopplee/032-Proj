@@ -15,34 +15,14 @@ police = X[, c(97:122)]
 # Create a vector for violent crime per population
 y = x[, 128]
 
-# Note: many functions serve primarily to allow me to avoid thinking
+# Note: some functions serve primarily to allow me to avoid thinking
 
-# Randomly divides set into training and test sets
-#   pct     the percentage (on [0.0, 1.0]) of the set to use for training
-#   data    the data.frame of predictor variables
-#   target  the numeric (vector) of target variables
-# Number of rows in data should match length of target and should be greater
-# than one
-# Returns list with the following elements:
-#   trainData   the pct percentage of the data set for training models
-#   testData    the 1-pct percentage of the data set for testing models
-#   trainTarget the pct percentage of the target set for training models
-#   testTarget  the 1-pct percentage of the target set for testing models
-SplitSet = function(pct, data, target) {
-  numRows = ceiling(pct * nrow(data))
-  trainRows = sample(c(1:nrow(data)), numRows)
-  trainData = data[trainRows, ]
-  testData = data[-trainRows, ]
-  trainTarget = target[trainRows]
-  testTarget = target[-trainRows]
-  return(
-    list(
-      "trainData" = trainData,
-      "testData" = testData,
-      "trainTarget" = trainTarget,
-      "testTarget" = testTarget
-    )
-  )
+# Generates n appropriately sized folds for a given data set
+#   n     number of folds
+#   data  data set needing splitting
+GenFolds = function(n, data) {
+  folds = cut(seq(1, nrow(data)), breaks = n , labels = FALSE)
+  return(folds)
 }
 
 # Simple function for taking mean absolute error
@@ -80,26 +60,25 @@ SqdError = function(model, data, target, predictor = NULL) {
   return(error)
 }
 
-# Creates a model with positive, negative, or both types of exponenets
-#   predictor   the column name of the column in trainData to use
-#   trainData   the data set from which to draw training data
-#   trainTarget the target variable vector from which to draw training data
-#   maxPow      the maximum power that should be included in the model
-#   minPow      the minimum power that should be included in the model
-ModelExp = function(predictor,
-                    trainData,
-                    trainTarget,
-                    maxPow = -1,
-                    minPow = 1) {
-  # To avoid dividing by zero
-  if (minPow < 0) {
-    trainData[trainData == 0] = NA
+CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor = NULL) {
+  errors = c()
+  n = folds[which.max(folds)]
+  for(i in c(1:n)) {
+    testIndex = which(folds == i, arr.ind = TRUE)
+    testData = data[testIndex, ]
+    testTarget = target[testIndex]
+    trainData = data[-testIndex, ]
+    trainTarget = target[-testIndex]
+    
+    f = as.formula(paste("trainTarget ~ ", rhs))
+    model = lm(f, data = trainData)
+    errors = c(errors, AbsError(model, testData, testTarget, predictor))
   }
-  
-  pows = paste("I(", predictor, "**", c(minPow:maxPow), ")", sep = '')
-  f = as.formula(paste("trainTarget ~ ", paste(pows, collapse = "+")))
-  model = lm(f, data = trainData)
-  return(model)
+  if (returnVar) {
+    return(c(mean(errors, na.rm =TRUE), var(errors, na.rm = TRUE)))
+  } else {
+    return(mean(errors, na.rm = TRUE))  
+  }
 }
 
 # Adds together all the powers from 1 to maxPow
@@ -111,28 +90,17 @@ ExpFormula = function(predictor, maxPow) {
   return(paste(pows, collapse = "+"))
 }
 
-# Returns the most common element in a vector
-#   dataSet   a numeric (vector)
-Mode = function(dataSet) {
-  uniqData <- unique(dataSet)
-  return(uniqData[which.max(tabulate(match(dataSet, uniqData)))])
-}
-
 # Increases maximum exponent from 0 until error increases
 #   predictor   a string containing the name of column to model
-#   trainData   data used for modeling; must contain predictor
-#   testData    data used for testing; must contain predictor
-#   trainTarget data of target variable used for modeling
-#   testTarget  data of target variable used for testing
+#   data        data used for modeling; must contain predictor
+#   target      data of target variable used for modeling
 # Returns the highest exponent reached before error increased
 PosExps = function(predictor,
-                   trainData,
-                   testData,
-                   trainTarget,
-                   testTarget) {
+                    data,
+                    target) {
+  folds = GenFolds(10, data)
   # Absolute worst a model should be
-  baseModel = lm(trainTarget ~ 1, data = trainData)
-  baseError = AbsError(baseModel, testData, testTarget)
+  baseError = CrossValidate(1, data, target, folds)
   
   oldError = Inf
   newError = baseError
@@ -141,43 +109,11 @@ PosExps = function(predictor,
   while (newError < oldError) {
     maxPow = maxPow + 1
     
-    model = ModelExp(predictor, trainData, trainTarget, maxPow = maxPow)
+    rhs = ExpFormula(predictor, maxPow)
     
     oldError = newError
-    newError = AbsError(model, testData, testTarget, predictor)
+    newError = CrossValidate(rhs, data, target, folds, predictor = predictor)
   }
   
   return(maxPow - 1)
-}
-
-# Creates a model with specifications according to parameters
-#   predictors  predictors the model is based on
-#   trainData   data of predictors to train model with
-#   trainTarget data of target variable to train model with
-#   exponenets  degree of polynomial models corresponding to predictors
-CreateModel = function(predictors,
-                       trainData,
-                       trainTarget,
-                       exponents) {
-  powForm = paste(mapply(ExpFormula, predictors, exponents), collapse = "+")
-  f = as.formula(paste("trainTarget ~ ", powForm))
-  model = lm(f, data = trainData)
-  return(model)
-}
-
-# Provides information on a model
-#   model       the model to test
-#   testData    data of predictors to test model with
-#   testTarget  data of target variable to test model with
-#   plot        whether or no to plot the model's predictions
-TestModel = function(model, testData, testTarget, plot = FALSE) {
-  if (plot) {
-    plot(predict(model, newdata = testData), testTarget)
-    abline(0, 1)
-  }
-  
-  cat(deparse(substitute(model)),
-      "error:",
-      AbsError(model, testData, testTarget),
-      '\n')
 }

@@ -1,28 +1,25 @@
 source('Powers.R')
 
 # Tests which polynomial models from Powers.R have lowest errors
-#   pct     fraction by which to split data into test and training set
+#   n       number of folds for cross-validation
 #   data    data.frame with predictor variables
 #   target  vector containing target variable
 #   exps    degree of polynomial models
-TestExps = function(pct, data, target, exps) {
-  split = SplitSet(pct, data, target)
-  models = mapply(
-    ModelExp,
+TestExps = function(n, data, target, exps) {
+  folds = GenFolds(n, Xmodel)
+  rhss = mapply(
+    ExpFormula,
     predictor = colnames(data),
     maxPow = exps,
-    SIMPLIFY = FALSE,
-    MoreArgs = list(
-      trainData = split$trainData,
-      trainTarget = split$trainTarget
-    )
+    SIMPLIFY = FALSE
   )
   errors = mapply(
-    AbsError,
-    model = models,
+    CrossValidate,
+    rhs = rhss,
     predictor = colnames(data),
-    MoreArgs = list(data = split$testData,
-                    target = split$testTarget)
+    MoreArgs = list(data = data,
+                    target = target,
+                    folds = folds)
   )
   return(errors)
 }
