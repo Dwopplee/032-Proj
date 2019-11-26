@@ -58,7 +58,7 @@ AbsError = function(model, data, target, predictor = NULL) {
       target = target[-c(naIndex)]
     }
   }
-  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target)))
+  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target), na.rm =TRUE))
   return(error)
 }
 
@@ -76,7 +76,7 @@ SqdError = function(model, data, target, predictor = NULL) {
       target = target[-c(naIndex)]
     }
   }
-  error = mean((predict(model, newdata = data) - target) ^ 2)
+  error = mean((predict(model, newdata = data) - target) ^ 2, na.rm =TRUE)
   return(error)
 }
 
