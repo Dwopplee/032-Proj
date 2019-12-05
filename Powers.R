@@ -22,7 +22,7 @@ y = y[ranRows]
 folds = GenFolds(10, X)
 
 # Our baseline model:
-cat("Base error and Variance:", CrossValidate(1, X, y, folds, TRUE), '\n')
+cat("Base error and Variance:", CrossValidate(1, X, y, folds, TRUE, NULL, TRUE), '\n')
 
 exps = sapply(colnames(X), PosExps, X, y)
 
@@ -35,7 +35,7 @@ pow0 = paste(mapply(ExpFormula, colnames(Xmodel), exps), collapse = "+")
 
 folds = GenFolds(10, Xmodel)
 
-cat("Model 0 error and Variance:", CrossValidate(pow0, Xmodel, y, folds, TRUE), '\n')
+cat("Model 0 error and Variance:", CrossValidate(pow0, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
 
 # Alright so this model doesn't look that bad if you're not really paying attention
 # It does bring the error down from ~0.1784 to 0.0996-0.1025

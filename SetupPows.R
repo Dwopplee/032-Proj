@@ -1,7 +1,7 @@
 load("crime.RData")
 
 # I have a problem
-par(bg = 'grey50')
+# par(bg = 'grey50')
 
 # Remove the non predictor columns
 X = x[, -c(c(1:5), 128)]
@@ -38,7 +38,7 @@ AbsError = function(model, data, target, predictor = NULL) {
       target = target[-c(naIndex)]
     }
   }
-  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target), na.rm =TRUE))
+  error = suppressWarnings(mean(abs(predict(model, newdata = data) - target), na.rm = TRUE))
   return(error)
 }
 
@@ -56,12 +56,16 @@ SqdError = function(model, data, target, predictor = NULL) {
       target = target[-c(naIndex)]
     }
   }
-  error = mean((predict(model, newdata = data) - target) ^ 2, na.rm =TRUE)
+  error = suppressWarnings(mean((predict(model, newdata = data) - target) ^ 2, na.rm = TRUE))
   return(error)
 }
 
-CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor = NULL) {
+CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor = NULL, plot = FALSE) {
   errors = c()
+  
+  xPoints = c()
+  yPoints = c()
+  
   n = folds[which.max(folds)]
   for(i in c(1:n)) {
     testIndex = which(folds == i, arr.ind = TRUE)
@@ -73,9 +77,20 @@ CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor 
     f = as.formula(paste("trainTarget ~ ", rhs))
     model = lm(f, data = trainData)
     errors = c(errors, AbsError(model, testData, testTarget, predictor))
+    
+    xPoints = c(xPoints, predict(model, newdata = testData))
+    yPoints = c(yPoints, testTarget)
   }
+  
+  if (plot) {
+    plot(xPoints, yPoints, xlab = "Predictions", ylab = "Actual")
+    
+    print(length(which(xPoints > mean(y))))
+    print(mean(xPoints, na.rm = TRUE))
+  }
+  
   if (returnVar) {
-    return(c(mean(errors, na.rm =TRUE), var(errors, na.rm = TRUE)))
+    return(c(mean(errors), var(errors, na.rm = TRUE)))
   } else {
     return(mean(errors, na.rm = TRUE))  
   }
