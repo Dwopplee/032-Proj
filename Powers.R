@@ -35,7 +35,7 @@ pow0 = paste(mapply(ExpFormula, colnames(Xmodel), exps), collapse = "+")
 
 folds = GenFolds(10, Xmodel)
 
-cat("Model 0 error and Variance:", CrossValidate(pow0, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
+cat("model0 error and variance:", CrossValidate(pow0, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
 
 # Alright so this model doesn't look that bad if you're not really paying attention
 # It does bring the error down from ~0.1784 to 0.0996-0.1025

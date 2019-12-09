@@ -60,6 +60,15 @@ SqdError = function(model, data, target, predictor = NULL) {
   return(error)
 }
 
+# Runs a cross-validation loop for a given right hand side of a formula
+# Also has to do most of our analysis because nothing gets written to global environment
+#   rhs       string containing the predictor side of the formula
+#   data      data to base the models off of
+#   target    vector of data to be predicted
+#   folds     assignments to a fold for each row in data
+#   returnVar a boolean that determines whether to return error variance between test sets
+#   predictor the name of the predictor, if there's only one. NULL otherwise
+#   plot      a boolean that determines whether to plot the predictions against reality
 CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor = NULL, plot = FALSE) {
   errors = c()
   
@@ -85,8 +94,7 @@ CrossValidate = function(rhs, data, target, folds, returnVar = FALSE, predictor 
   if (plot) {
     plot(xPoints, yPoints, xlab = "Predictions", ylab = "Actual")
     
-    print(length(which(xPoints > mean(y))))
-    print(mean(xPoints, na.rm = TRUE))
+    plot(density(yPoints - xPoints, na.rm = TRUE), xlab = "Residuals", main = "")
   }
   
   if (returnVar) {

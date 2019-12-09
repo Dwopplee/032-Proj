@@ -24,7 +24,7 @@ top10cor = cor(Xmodel[, bestIndex[c(1:10)]])
 #   Take predictor with lowest error and the one with least correlation with it
 powForm0 = paste(mapply(ExpFormula, c("PctKids2Par", "NumIlleg"), c(3, 9)),
                  collapse = "+")
-cat("Test 0 error and Variance:", CrossValidate(powForm0, X, y, folds, TRUE, NULL, TRUE), '\n')
+cat("test0 error and variance:", CrossValidate(powForm0, X, y, folds, TRUE, NULL, TRUE), '\n')
 # This model reduces error but variance almost triples, which is interesting.
 # I suppose less variables means more variance because they can't mitigate each others' variances
 
@@ -56,7 +56,7 @@ corExps = exps[cors]
 
 # Generate and plot a model with all other predictors raised to generated powers
 powForm1 = paste(mapply(ExpFormula, colnames(corData), corExps), collapse = "+")
-cat("Test 1 error and Variance:", CrossValidate(powForm1, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
+cat("test1 error and variance:", CrossValidate(powForm1, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
 
 # Try looping this stuff?
 
@@ -90,4 +90,4 @@ LoopCors = function(data) {
 cor2Names = LoopCors(Xmodel)
 
 powForm2 = paste(mapply(ExpFormula, colnames(Xmodel)[cor2Names], exps[cor2Names]), collapse = "+")
-cat("Test 2 error and Variance:", CrossValidate(powForm2, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
+cat("test2 error and variance:", CrossValidate(powForm2, Xmodel, y, folds, TRUE, NULL, TRUE), '\n')
